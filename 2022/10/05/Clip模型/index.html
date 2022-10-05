@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="一、运作流程用户可以在线上或线下机器输入图片以及文字描述，结合我们提供的裸娃图，通过本部本地搭建的disco diffusion处理，显示5张不同批次的图片及其实现的过程，通过感知哈希算法判断最终图与原裸娃图的相似性，系统判断相似度是否达到50%（后期可以实验调整），留下达标图片，再交由设计师处理、选择，以及建模等进一步精细化设计，做出3D设计稿，部件分拆（一般不需要分拆），3D打印手板件，手板打">
+<meta property="og:type" content="article">
+<meta property="og:title" content="喵咪妈咪哄">
+<meta property="og:url" content="http://example.com/2022/10/05/Clip%E6%A8%A1%E5%9E%8B/index.html">
+<meta property="og:site_name" content="喵咪妈咪哄">
+<meta property="og:description" content="一、运作流程用户可以在线上或线下机器输入图片以及文字描述，结合我们提供的裸娃图，通过本部本地搭建的disco diffusion处理，显示5张不同批次的图片及其实现的过程，通过感知哈希算法判断最终图与原裸娃图的相似性，系统判断相似度是否达到50%（后期可以实验调整），留下达标图片，再交由设计师处理、选择，以及建模等进一步精细化设计，做出3D设计稿，部件分拆（一般不需要分拆），3D打印手板件，手板打">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/Clip%E6%A8%A1%E5%9E%8B.assets/v2-42181e6098a90635a05cfeb1c1091afe_720w.webp">
+<meta property="og:image" content="http://example.com/Clip%E6%A8%A1%E5%9E%8B.assets/354824bcc1cc493188b2aacf8a179260.png">
+<meta property="article:published_time" content="2022-10-05T05:48:54.274Z">
+<meta property="article:modified_time" content="2022-10-05T05:49:38.493Z">
+<meta property="article:author" content="nekkoya">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/Clip%E6%A8%A1%E5%9E%8B.assets/v2-42181e6098a90635a05cfeb1c1091afe_720w.webp">
+
+<link rel="canonical" href="http://example.com/2022/10/05/Clip%E6%A8%A1%E5%9E%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title> | 喵咪妈咪哄</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">喵咪妈咪哄</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录生活&学习交流</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">0</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">0</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">7</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/10/05/Clip%E6%A8%A1%E5%9E%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="nekkoya">
+      <meta itemprop="description" content="此博客正式搭建于2022年10月2日，欢迎光临~">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="喵咪妈咪哄">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-10-05 13:48:54 / 修改时间：13:49:38" itemprop="dateCreated datePublished" datetime="2022-10-05T13:48:54+08:00">2022-10-05</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="一、运作流程"><a href="#一、运作流程" class="headerlink" title="一、运作流程"></a>一、运作流程</h3><p>用户可以在线上或线下机器输入图片以及文字描述，结合我们提供的裸娃图，通过本部本地搭建的disco diffusion处理，显示5张不同批次的图片及其实现的过程，通过感知哈希算法判断最终图与原裸娃图的相似性，系统判断相似度是否达到50%（后期可以实验调整），留下达标图片，再交由设计师处理、选择，以及建模等进一步精细化设计，做出3D设计稿，部件分拆（一般不需要分拆），3D打印手板件，手板打磨上底色，样板上色，组装，邮寄。</p>
+<h3 id="二、原理介绍"><a href="#二、原理介绍" class="headerlink" title="二、原理介绍"></a>二、原理介绍</h3><h5 id="（Ⅰ）汉明距离（Hamming-distance）"><a href="#（Ⅰ）汉明距离（Hamming-distance）" class="headerlink" title="（Ⅰ）汉明距离（Hamming distance）"></a>（Ⅰ）汉明距离（Hamming distance）</h5><p>在信息论中，两个等长字符串之间的汉明距离是两个字符串对应位置的不同字符的个数。对两个字符串进行异或运算，并统计结果为1的个数，那么这个数就是汉明距离。我们也可以将汉明距离理解为两个等长字符串之间将其中一个变为另外一个所需要作的最小替换次数。</p>
+<p>布雷汉明距离的Python实现：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">HammingDistance</span>(<span class="params">x, y</span>):</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">sum</span>(x_ch != y_ch <span class="keyword">for</span> x_ch, y_ch <span class="keyword">in</span> <span class="built_in">zip</span>(x, y))</span><br></pre></td></tr></table></figure>
+
+<h5 id="（Ⅱ）感知哈希算法（perceptual-hash-algorithm）"><a href="#（Ⅱ）感知哈希算法（perceptual-hash-algorithm）" class="headerlink" title="（Ⅱ）感知哈希算法（perceptual hash algorithm）"></a>（Ⅱ）感知哈希算法（perceptual hash algorithm）</h5><p>感知哈希算法(perceptual hash algorithm)，它的作用是对每张图像生成一个“指纹”(fingerprint)字符串，然后比较不同图像的指纹。结果越接近，就说明图像越相似。</p>
+<p>实现步骤：</p>
+<ol>
+<li>缩小尺寸：将图像缩小到8*8的尺寸，总共64个像素。这一步的作用是去除图像的细节，只保留结构&#x2F;明暗等基本信息，摒弃不同尺寸&#x2F;比例带来的图像差异；</li>
+<li>简化色彩：将缩小后的图像，转为64级灰度，即所有像素点总共只有64种颜色；</li>
+<li>计算平均值：计算所有64个像素的灰度平均值；</li>
+<li>比较像素的灰度：将每个像素的灰度，与平均值进行比较，大于或等于平均值记为1，小于平均值记为0；</li>
+<li>计算哈希值：将上一步的比较结果，组合在一起，就构成了一个64位的整数，这就是这张图像的指纹。组合的次序并不重要，只要保证所有图像都采用同样次序就行了；</li>
+</ol>
+<p>得到指纹以后，就可以对比不同的图像，看看64位中有多少位是不一样的。在理论上，这等同于”汉明距离”(Hamming distance,)。如果不相同的数据位数不超过5，就说明两张图像很相似；如果大于10，就说明这是两张不同的图像。</p>
+<h5 id="（Ⅲ）Disco-Diffusion"><a href="#（Ⅲ）Disco-Diffusion" class="headerlink" title="（Ⅲ）Disco Diffusion"></a>（Ⅲ）Disco Diffusion</h5><p>disco diffusion是发布于 Google Colab 平台的一款利用人工智能深度学习进行数字艺术创作的工具，它是基于 MIT 许可协议的开源工具，可以在 Google Drive 直接运行，也可以部署到本地运行，目前最新的版本是 Disco Diffusion v5.2。</p>
+<p>原理是「CLIP-Guided Diffusion」，通过文字输入让AI产生相应的图片输出。</p>
+<h5 id="（Ⅳ）CLIP"><a href="#（Ⅳ）CLIP" class="headerlink" title="（Ⅳ）CLIP"></a>（Ⅳ）CLIP</h5><p>其中CLIP(Contrastive Language-lmage Pre-training)是用于标记图像的工具。结合使用时，CLIP使用其图像识别技术迭代地引导Diffusion去噪过程朝向与文本提示紧密匹配的图像。Diffusion是一个迭代的过程。每次迭代时，CLIP都会根据文字提示，评估现有的图像，并为Diffusion提供「方向」。Diffusion将对现有图像进行「去噪」。所以你运行DD时会看到，图像最初只是一团模糊的混乱，但随着DD在迭代时间步长中的推进，图像的粗略和精细细节将出现。</p>
+<p>CLIP的英文全称是<strong>Contrastive Language-Image Pre-training</strong>，即<strong>一种基于对比文本-图像对的预训练方法或者模型</strong>。CLIP的训练数据是文本-图像对：一张图像和它对应的文本描述。如下图所示，CLIP包括两个模型：<strong>Text Encoder</strong>和<strong>Image Encoder</strong>，其中Text Encoder用来提取文本的特征，可以采用NLP中常用的text transformer模型；而Image Encoder用来提取图像的特征，可以采用常用CNN模型或者vision transformer。</p>
+<p>这里对提取的文本特征和图像特征进行对比学习。对于一个包含N个文本-图像对的训练batch，将N个文本特征和N个图像特征两两组合，CLIP模型会预测出N2个可能的文本-图像对的相似度，这里的相似度直接<strong>计算文本特征和图像特征的余弦相似性（cosine similarity）</strong>，即上图所示的矩阵。这里共有N个正样本，即真正属于一对的文本和图像（矩阵中的对角线元素），而剩余的N2−N个文本-图像对为负样本，那么CLIP的训练目标就是最大N个正样本的相似度，同时最小化N2−N个负样本的相似度，对应的伪代码实现如下所示：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># image_encoder - ResNet or Vision Transformer</span></span><br><span class="line"><span class="comment"># text_encoder - CBOW or Text Transformer</span></span><br><span class="line"><span class="comment"># I[n, h, w, c] - minibatch of aligned images</span></span><br><span class="line"><span class="comment"># T[n, l] - minibatch of aligned texts</span></span><br><span class="line"><span class="comment"># W_i[d_i, d_e] - learned proj of image to embed</span></span><br><span class="line"><span class="comment"># W_t[d_t, d_e] - learned proj of text to embed</span></span><br><span class="line"><span class="comment"># t - learned temperature parameter</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 分别提取图像特征和文本特征</span></span><br><span class="line"><span class="attr">I_f</span> = image_encoder(I) <span class="comment">#[n, d_i]</span></span><br><span class="line"><span class="attr">T_f</span> = text_encoder(T) <span class="comment">#[n, d_t]</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 对两个特征进行线性投射，得到相同维度的特征，并进行l2归一化</span></span><br><span class="line"><span class="attr">I_e</span> = l2_normalize(np.dot(I_f, W_i), axis=<span class="number">1</span>)</span><br><span class="line"><span class="attr">T_e</span> = l2_normalize(np.dot(T_f, W_t), axis=<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 计算缩放的余弦相似度：[n, n]</span></span><br><span class="line"><span class="attr">logits</span> = np.dot(I_e, T_e.T) * np.exp(t)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 对称的对比学习损失：等价于N个类别的cross_entropy_loss</span></span><br><span class="line"><span class="attr">labels</span> = np.arange(n) <span class="comment"># 对角线元素的labels</span></span><br><span class="line"><span class="attr">loss_i</span> = cross_entropy_loss(logits, labels, axis=<span class="number">0</span>)</span><br><span class="line"><span class="attr">loss_t</span> = cross_entropy_loss(logits, labels, axis=<span class="number">1</span>)</span><br><span class="line"><span class="attr">loss</span> = (loss_i + loss_t)/<span class="number">2</span></span><br></pre></td></tr></table></figure>
+
+<p>为了训练CLIP，OpenAI从互联网收集了共<strong>4个亿的文本-图像对</strong>，论文称之为<strong>WebImageText</strong>，如果按照文本的单词量，它和训练GPT-2的WebText规模类似，如果从数量上对比的话，它还比谷歌的JFT-300M数据集多一个亿，所以说这是一个很大规模的数据集。CLIP虽然是多模态模型，但它主要是用来<strong>训练可迁移的视觉模型</strong>。论文中Text Encoder固定选择一个包含63M参数的text transformer模型，而Image Encoder采用了两种的不同的架构，一是常用的CNN架构ResNet，二是基于transformer的ViT，其中ResNet包含5个不同大小的模型：<strong>ResNet50</strong>，<strong>ResNet101</strong>，<strong>RN50x4</strong>，<strong>RN50x16</strong>和<strong>RNx64</strong>（后面三个模型是按照EfficientNet缩放规则对ResNet分别增大4x，16x和64x得到），而ViT选择3个不同大小的模型：<strong>ViT-B&#x2F;32</strong>，<strong>ViT-B&#x2F;16</strong>和<strong>ViT-L&#x2F;14</strong>。所有的模型都训练32个epochs，采用AdamW优化器，而且训练过程采用了一个<strong>较大的batch size：32768</strong>。由于数据量较大，最大的ResNet模型RN50x64需要在592个V100卡上训练18天，而最大ViT模型ViT-L&#x2F;14需要在256张V100卡上训练12天，可见要训练CLIP需要耗费多大的资源。对于ViT-L&#x2F;14，还在336的分辨率下额外finetune了一个epoch来增强性能，论文发现这个模型效果最好，记为<strong>ViT-L&#x2F;14</strong><a href=""><strong>@336</strong> </a> ，论文中进行对比实验的CLIP模型也采用这个。</p>
+<p><strong>如何用CLIP实现zero-shot分类</strong></p>
+<p>上面我们介绍了CLIP的原理，可以看到训练后的CLIP其实是两个模型，除了视觉模型外还有一个文本模型，那么如何对预训练好的视觉模型进行迁移呢？<strong>与CV中常用的先预训练然后微调不同，CLIP可以直接实现zero-shot的图像分类，即不需要任何训练数据，就能在某个具体下游任务上实现分类，</strong>这也是CLIP亮点和强大之处。用CLIP实现zero-shot分类很简单，只需要简单的两步：</p>
+<ol>
+<li>根据任务的分类标签构建每个类别的描述文本：A photo of {label}，然后将这些文本送入Text Encoder得到对应的文本特征，如果类别数目为N，那么将得到N个文本特征；</li>
+<li>将要预测的图像送入Image Encoder得到图像特征，然后与N个文本特征计算缩放的余弦相似度（和训练过程一致），然后选择相似度最大的文本对应的类别作为图像分类预测结果，进一步地，可以将这些相似度看成logits，送入softmax后可以到每个类别的预测概率。</li>
+</ol>
+<p>可以看到，我们是利用CLIP的多模态特性为具体的任务<strong>构建了动态的分类器</strong>，<strong>其中Text Encoder提取的文本特征可以看成分类器的weights，而Image Encoder提取的图像特征是分类器的输入</strong>。这里我们给出了一个基于CLIP的一个实例（参考官方<a href="https://link.zhihu.com/?target=https://github.com/openai/CLIP/blob/main/notebooks/Interacting_with_CLIP.ipynb">notebook</a>），这里任务共有6个类别：”dog”, “cat”, “bird”, “person”, “mushroom”, “cup”，首先我们创建文本描述，然后提取文本特征：</p>
+<figure class="highlight jboss-cli"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 首先生成每个类别的文本描述</span></span><br><span class="line">labels = [<span class="string">&quot;dog&quot;</span>, <span class="string">&quot;cat&quot;</span>, <span class="string">&quot;bird&quot;</span>, <span class="string">&quot;person&quot;</span>, <span class="string">&quot;mushroom&quot;</span>, <span class="string">&quot;cup&quot;</span>]</span><br><span class="line">text_descriptions = [f<span class="string">&quot;A photo of a &#123;label&#125;&quot;</span> for label in labels]</span><br><span class="line">text_tokens = clip.tokenize<span class="params">(text_descriptions)</span><span class="string">.cuda</span><span class="params">()</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 提取文本特征</span></span><br><span class="line">with torch.no_grad<span class="params">()</span>:</span><br><span class="line">    text_features = model.encode_text<span class="params">(text_tokens)</span><span class="string">.float</span><span class="params">()</span></span><br><span class="line">    text_features <span class="string">/=</span> text_features.norm<span class="params">(<span class="attr">dim</span>=-1, <span class="attr">keepdim</span>=True)</span></span><br></pre></td></tr></table></figure>
+
+<p>然后我们读取要预测的图像，输入Image Encoder提取图像特征，并计算与文本特征的余弦相似度：</p>
+<figure class="highlight jboss-cli"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 读取图像</span></span><br><span class="line">original_images = []</span><br><span class="line">images = []</span><br><span class="line">texts = []</span><br><span class="line"></span><br><span class="line">for label in labels:</span><br><span class="line">    image_file = os.path.join<span class="params">(&quot;images&quot;, label+&quot;.jpg&quot;)</span></span><br><span class="line">    name = os.path.basename<span class="params">(image_file)</span><span class="string">.split</span><span class="params">(&#x27;.&#x27;)</span>[0]</span><br><span class="line"></span><br><span class="line">    image = Image.open<span class="params">(image_file)</span><span class="string">.convert</span><span class="params">(&quot;RGB&quot;)</span></span><br><span class="line">    original_images.append<span class="params">(image)</span></span><br><span class="line">    images.append<span class="params">(preprocess(image)</span>)</span><br><span class="line">    texts.append<span class="params">(name)</span></span><br><span class="line"></span><br><span class="line">image_input = torch.tensor<span class="params">(np.stack(images)</span>)<span class="string">.cuda</span><span class="params">()</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 提取图像特征  </span></span><br><span class="line">with torch.no_grad<span class="params">()</span>:</span><br><span class="line">    image_features = model.encode_image<span class="params">(image_input)</span><span class="string">.float</span><span class="params">()</span></span><br><span class="line">    image_features <span class="string">/=</span> image_features.norm<span class="params">(<span class="attr">dim</span>=-1, <span class="attr">keepdim</span>=True)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 计算余弦相似度（未缩放）</span></span><br><span class="line">similarity = text_features.cpu<span class="params">()</span><span class="string">.numpy</span><span class="params">()</span> @ image_features.cpu<span class="params">()</span><span class="string">.numpy</span><span class="params">()</span><span class="string">.T</span></span><br></pre></td></tr></table></figure>
+
+<p>相似度如下所示，可以看到对于要预测的6个图像，按照最大相似度，其均能匹配到正确的文本标签：</p>
+<p>进一步地，我们也可以对得到的余弦相似度计算softmax，得到每个预测类别的概率值，注意这里要对相似度进行缩放：</p>
+<figure class="highlight fortran"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">logit_scale = np.<span class="built_in">exp</span>(model.logit_scale.<span class="keyword">data</span>.item())</span><br><span class="line">text_probs = (logit_scale * image_features @ text_features.T).softmax(<span class="built_in">dim</span>=-<span class="number">1</span>)</span><br><span class="line">top_probs, top_labels = text_probs.cpu().topk(<span class="number">5</span>, <span class="built_in">dim</span>=-<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p>得到的预测概率如下所示，可以看到6个图像，CLIP模型均能够以绝对的置信度给出正确的分类结果：</p>
+<p>使用CLIP进行zero-shot分类，另外一个比较重要的地方是<strong>文本描述的生成</strong>，上面的例子我们采用A photo of {label}，但其实也有其它选择，比如我们直接用类别标签，这其实属于最近NLP领域比较火的一个研究：prompt learning或者prompt engineering，这和之前的预训练+微调属于不同的范式。如果我们直接采用类别标签作为文本描述，那么很多文本就是一个单词，缺少具体的上下文，而且也和CLIP的训练数据不太一致，效果上会不如采用A photo of {label}（ImageNet数据集上可以提升1.3%）。论文也实验了采用80个不同的prompt来进行集成，发现在ImageNet数据集上能带来3.5%的提升。下图对比了基于ResNet的CLIP模型直接采用类别名与进行prompt engineering和ensembling的效果对比：</p>
+<h5 id="Ⅴ）3D打印"><a href="#Ⅴ）3D打印" class="headerlink" title="(Ⅴ）3D打印"></a>(Ⅴ）3D打印</h5><p>3D打印技术的工作原理是利用计算机建模软件(如3Dmax等。)在计算机上创建一个虚拟的3D模型，将模型文件转换成与3D打印机匹配的格式，然后3D打印机根据切片程序将横截面堆叠成3D模型来完成打印。</p>
+<p>3D打印技术避免了传统制造业的切割工艺，不需要模具制造。加工速度快，生产周期相对较短。更重要的是，3D打印在制造体积小、结构复杂的物体方面有很大的优势。通过集成印刷技术，不需要二次加工，通过计算机在线操作实现批量生产和远程控制。</p>
+<p>3D打印技术最具代表性的是熔积成型技术。其工作原理是通过送丝装置将热熔长丝材料送入喷嘴。在计算机软件的控制下，加热喷嘴挤出软化的材料，并开始沿着物体的轮廓移动，直到半流动材料的填充和固化完成，从而形成3D打印产品。例如，对于塑料制品的三维打印，通过加热三维打印机的喷嘴使塑料熔化，挤出后塑料迅速冷却，并与周围材料粘合和覆盖。目前，FDM可以印刷金属、石蜡、ABS、PLA、人造橡胶等,同时生产3D模型、机械零件、日用品等。广泛应用于建筑、汽车、航空航天和医疗领域。与传统机械加工生产相比，FDM技术具有成本低、材料广泛、原材料利用率高、污染少等优点。</p>
+<h5 id="（Ⅵ）prompt-learning-x2F-prompt-engineering"><a href="#（Ⅵ）prompt-learning-x2F-prompt-engineering" class="headerlink" title="（Ⅵ）prompt learning&#x2F;prompt engineering"></a>（Ⅵ）prompt learning&#x2F;prompt engineering</h5><p>与传统的监督学习(训练模型接受输入x并预测输出y为P(y|x))不同，基于提示的学习基于直接模拟文本概率的语言模型。为了使用这些模型执行预测任务，使用模板将原始输入x修改为文本字符串提示符x’，其中有一些未填充的槽，然后使用语言模型概率地填充未填充的信息，以获得最终字符串x，从中可以导出最终输出y。该框架功能强大且具有吸引力，原因有很多:它允许语言模型在大量原始文本上进行预训练，通过定义一个新的提示函数，模型能够执行少次甚至零次学习，适应有很少或没有标记数据的新场景。</p>
+<h5 id="（Ⅶ）Diffusion-Model"><a href="#（Ⅶ）Diffusion-Model" class="headerlink" title="（Ⅶ）Diffusion Model"></a>（Ⅶ）Diffusion Model</h5><p>各类生成模型对比图:</p>
+<p><img src="/Clip%E6%A8%A1%E5%9E%8B.assets/v2-42181e6098a90635a05cfeb1c1091afe_720w.webp" alt="img"></p>
+<p>diffusion model和其他模型最大的区别是它的latent code(z)和原图是同尺寸大小的（最近也有基于压缩的latent diffusion model）。diffusion model即存在一系列高斯噪声（ T 轮），将输入图片 x0 变为纯高斯噪声 xT 。而我们的模型则负责将 xT 复原回图片 x0 。要强调的是，这里噪声 xT 与图片x0是<strong>同维度</strong>的。</p>
+<p>所谓前向过程，即往图片上加噪声的过程。虽然这个步骤无法做到图片生成，但是这是理解diffusion model以及<strong>构建训练样本GT</strong>至关重要的一步。</p>
+<p>给定真实图片 x0∼q(x) ,diffusion前向过程通过 T 次累计对其添加高斯噪声，得到 x1,x2,…,xT ，如下图的q过程。这里需要给定一系列的高斯分布方差的超参数 {βt∈(0,1)}t&#x3D;1T .前向过程由于每个时刻 t 只与 t−1 时刻有关，所以也可以看做马尔科夫过程：</p>
+<p>(1)q(xt|xt−1)&#x3D;N(xt;1−βtxt−1,βtI),q(x1:T|x0)&#x3D;∏t&#x3D;1Tq(xt|xt−1).</p>
+<p>这个过程中，随着 t 的增大， xt 越来越接近纯噪声。当 T→∞ ， xT 是完全的高斯噪声（下面会证明，且与均值系数1−βt 的选择有关）。且实际中 βt 随着t增大是递增的，即 β1&lt;β2&lt;…&lt;βT 。</p>
+<p>如果说前向过程(forward)是加噪的过程，那么逆向过程(reverse)就是diffusion的去噪推断过程。如果我们能够逐步得到逆转后的分布 q(xt−1|xt) ，就可以从完全的标准高斯分布 xT∼N(0,I) 还原出原图分布 x0 .在文献[<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/525106459#ref_7">7]</a>中证明了如果 q(xt|xt−1) 满足高斯分布且 βt 足够小，q(xt−1|xt)仍然是一个高斯分布。然而我们无法简单推断q(xt−1|xt)，因此我们使用深度学习模型（参数为 θ ，目前主流是U-Net+attention的结构）去预测这样的一个逆向的分布 pθ（类似VAE） ：</p>
+<p>(5-1)pθ(X0:T)&#x3D;p(xT)∏t&#x3D;1Tpθ(xt−1|xt); (5-2)pθ(xt−1|xt)&#x3D;N(xt−1;μθ(xt,t),Σθ(xt,t)).</p>
+<p>虽然我们无法得到逆转后的分布 q(xt−1|xt)，但是如果知道 x0 ，是可以通过贝叶斯公式得到 q(xt−1|xt,x0) 为：</p>
+<p>(6)q(xt−1|xt,x0)&#x3D;N(xt−1;μ(xt,x0),βtI)</p>
+<p>过程如下：</p>
+<h3 id="三、一些限定条件"><a href="#三、一些限定条件" class="headerlink" title="三、一些限定条件"></a>三、一些限定条件</h3><ol>
+<li>每种娃限量，但有不同尺寸，手办或者bjd（流程中写的是手办制作流程，bjd类似）</li>
+<li>同样的描述和图片可以得出相似的</li>
+<li>用户可以选择一并收到3d模型（加钱 元宇宙）</li>
+<li>两千多位艺术家风格可选择：<a target="_blank" rel="noopener" href="https://docs.google.com/spreadsheets/d/14xTqtuV3BuKDNhLotB_d1aFlBGnDJOY0BRXJ8-86GpA/edit#gid=0">https://docs.google.com/spreadsheets/d/14xTqtuV3BuKDNhLotB_d1aFlBGnDJOY0BRXJ8-86GpA/edit#gid=0</a></li>
+</ol>
+<h3 id="四、实现细节"><a href="#四、实现细节" class="headerlink" title="四、实现细节"></a>四、实现细节</h3><ol>
+<li>添加删除配色colour scheme 让AI自由发挥的选项</li>
+<li>长宽给定 （后期可以实验调整）</li>
+<li>步数可以设为250， 保存间隔为50 （后期可以实验调整）</li>
+<li>显示间隔为10，批次为5（后期可以实验调整）<br><img src="/Clip%E6%A8%A1%E5%9E%8B.assets/354824bcc1cc493188b2aacf8a179260.png" alt="img"></li>
+</ol>
+<h3 id="五、给用户的注"><a href="#五、给用户的注" class="headerlink" title="五、给用户的注"></a>五、给用户的注</h3><ol>
+<li>权重：在描述词后加上不同的数字调整权重，如“雷云5：，火焰：5”，画面中它们呈现的比例就会有所对应；加上“景深：-2”关键词，会减弱画面的景深效果；输入“4K”则会在分辨率不变的情况下提升锐化值，模拟出更清晰的画面。</li>
+<li>用关键词而非句子描述加入时间点 季节 气候 等</li>
+<li>尽可能地输入形容词前缀</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/10/03/%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A2/" rel="prev" title="">
+      <i class="fa fa-chevron-left"></i> 
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/10/05/A/" rel="next" title="">
+       <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E8%BF%90%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="nav-number">1.</span> <span class="nav-text">一、运作流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%8E%9F%E7%90%86%E4%BB%8B%E7%BB%8D"><span class="nav-number">2.</span> <span class="nav-text">二、原理介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%EF%BC%88%E2%85%A0%EF%BC%89%E6%B1%89%E6%98%8E%E8%B7%9D%E7%A6%BB%EF%BC%88Hamming-distance%EF%BC%89"><span class="nav-number">2.0.1.</span> <span class="nav-text">（Ⅰ）汉明距离（Hamming distance）</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%EF%BC%88%E2%85%A1%EF%BC%89%E6%84%9F%E7%9F%A5%E5%93%88%E5%B8%8C%E7%AE%97%E6%B3%95%EF%BC%88perceptual-hash-algorithm%EF%BC%89"><span class="nav-number">2.0.2.</span> <span class="nav-text">（Ⅱ）感知哈希算法（perceptual hash algorithm）</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%EF%BC%88%E2%85%A2%EF%BC%89Disco-Diffusion"><span class="nav-number">2.0.3.</span> <span class="nav-text">（Ⅲ）Disco Diffusion</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%EF%BC%88%E2%85%A3%EF%BC%89CLIP"><span class="nav-number">2.0.4.</span> <span class="nav-text">（Ⅳ）CLIP</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E2%85%A4%EF%BC%893D%E6%89%93%E5%8D%B0"><span class="nav-number">2.0.5.</span> <span class="nav-text">(Ⅴ）3D打印</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%EF%BC%88%E2%85%A5%EF%BC%89prompt-learning-x2F-prompt-engineering"><span class="nav-number">2.0.6.</span> <span class="nav-text">（Ⅵ）prompt learning&#x2F;prompt engineering</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%EF%BC%88%E2%85%A6%EF%BC%89Diffusion-Model"><span class="nav-number">2.0.7.</span> <span class="nav-text">（Ⅶ）Diffusion Model</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E4%B8%80%E4%BA%9B%E9%99%90%E5%AE%9A%E6%9D%A1%E4%BB%B6"><span class="nav-number">3.</span> <span class="nav-text">三、一些限定条件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82"><span class="nav-number">4.</span> <span class="nav-text">四、实现细节</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E7%BB%99%E7%94%A8%E6%88%B7%E7%9A%84%E6%B3%A8"><span class="nav-number">5.</span> <span class="nav-text">五、给用户的注</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nekkoya</p>
+  <div class="site-description" itemprop="description">此博客正式搭建于2022年10月2日，欢迎光临~</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nekkoya</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

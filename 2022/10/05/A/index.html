@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="A充分性上面我们介绍了如何用CLIP实现zero-shot分类，下面将简单介绍CLIP与其它方法的效果对比。首先是CLIP和17年的一篇工作Learning Visual N-Grams from Web Data的在3个分类数据集上zero-shot效果对比，如下表所示，可以看到CLIP模型在效果上远远超过之前的模型，其中在ImageNet数据集可以达到76.2，这和全监督的ResNet50效果">
+<meta property="og:type" content="article">
+<meta property="og:title" content="喵咪妈咪哄">
+<meta property="og:url" content="http://example.com/2022/10/05/A/index.html">
+<meta property="og:site_name" content="喵咪妈咪哄">
+<meta property="og:description" content="A充分性上面我们介绍了如何用CLIP实现zero-shot分类，下面将简单介绍CLIP与其它方法的效果对比。首先是CLIP和17年的一篇工作Learning Visual N-Grams from Web Data的在3个分类数据集上zero-shot效果对比，如下表所示，可以看到CLIP模型在效果上远远超过之前的模型，其中在ImageNet数据集可以达到76.2，这和全监督的ResNet50效果">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/A.assets/v2-d3c1c6676c28f75d26029c0cde43ed60_720w.webp">
+<meta property="og:image" content="http://example.com/A.assets/v2-dc8ba977117fdec5fd2f79961d7110d4_720w.webp">
+<meta property="og:image" content="http://example.com/A.assets/v2-4d122ef5767f0453121698d4bad08036_720w.webp">
+<meta property="og:image" content="http://example.com/A.assets/v2-42d05e933b46aebf16ba11e2cfce6154_720w.webp">
+<meta property="og:image" content="http://example.com/A.assets/v2-7798ab2d513a0ab79117adcf74d8ec05_720w.webp">
+<meta property="og:image" content="http://example.com/A.assets/v2-dcbbf5bc5e3f0e3ff60155547fd134b8_720w.webp">
+<meta property="og:image" content="http://example.com/A.assets/v2-0a2056e539c727c3be2ae1c93829d118_720w.webp">
+<meta property="article:published_time" content="2022-10-05T05:50:05.225Z">
+<meta property="article:modified_time" content="2022-10-05T05:50:22.112Z">
+<meta property="article:author" content="nekkoya">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/A.assets/v2-d3c1c6676c28f75d26029c0cde43ed60_720w.webp">
+
+<link rel="canonical" href="http://example.com/2022/10/05/A/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title> | 喵咪妈咪哄</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">喵咪妈咪哄</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录生活&学习交流</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">0</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">0</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">7</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/10/05/A/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="nekkoya">
+      <meta itemprop="description" content="此博客正式搭建于2022年10月2日，欢迎光临~">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="喵咪妈咪哄">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-10-05 13:50:05 / 修改时间：13:50:22" itemprop="dateCreated datePublished" datetime="2022-10-05T13:50:05+08:00">2022-10-05</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="A"><a href="#A" class="headerlink" title="A"></a>A</h1><p>充分性<br>上面我们介绍了如何用CLIP实现zero-shot分类，下面将简单介绍CLIP与其它方法的效果对比。首先是CLIP和17年的一篇工作<a href="https://link.zhihu.com/?target=https://arxiv.org/abs/1612.09161">Learning Visual N-Grams from Web Data</a>的在3个分类数据集上zero-shot效果对比，如下表所示，可以看到CLIP模型在效果上远远超过之前的模型，其中在ImageNet数据集可以达到76.2，这和全监督的ResNet50效果相当，不用任何训练数据就能达到这个效果是相当惊艳的。<br><img src="/A.assets/v2-d3c1c6676c28f75d26029c0cde43ed60_720w.webp" alt="img"><br>更进一步地，论文还对比了zero-shot CLIP和ResNet50 linear probing（ImageNet数据上预训练，在加上线性分类层进行finetune）在27个数据集上表现，如下图所示，其中在16个数据集上CLIP可以超过ResNet50。但是在一些特别的，复杂的或者抽象的数据集上CLIP表现较差，比如卫星图像分类，淋巴结转移检测，在合成场景中计数等，CLIP的效果不如全监督的ResNet50，这说明CLIP并不是万能的，还是有改进的空间。<br><img src="/A.assets/v2-dc8ba977117fdec5fd2f79961d7110d4_720w.webp" alt="img"><br>除了zero-shot对比，论文还对比few-shot性能，即只用少量的样本来微调模型，这里对比了3个模型：在ImageNet21K上训练的BiT-M ResNet-152x2，基于SimCLRv2训练的ResNet50，以及有监督训练的ResNet50。可以看到CLIP的zero-shot和最好的模型（BiT-M）在16-shot下的性能相当，而CLIP在16-shot下效果有进一步的提升。另外一个比较有意思的结果是：虽然CLIP在few-shot实验中随着样本量增加性能有提升，但是1-shot和2-shot性能比zero-shot还差，这个作者认为主要是CLIP的训练和常规的有监督训练存在一定的差异造成的。<br><img src="/A.assets/v2-4d122ef5767f0453121698d4bad08036_720w.webp" alt="img"><br>除此之外，论文还进行了表征学习（representation Learning）实验，即自监督学习中常用的linear probe：用训练好的模型先提取特征，然后用一个线性分类器来有监督训练。下图为不同模型在27个数据集上的average linear probe score对比，可以看到CLIP模型在性能上超过其它模型，而且计算更高效：<br><img src="/A.assets/v2-42d05e933b46aebf16ba11e2cfce6154_720w.webp" alt="img"><br>另外，论文还发现CLIP在自然分布漂移上表现更鲁棒，比如CLIP和基于ImageNet上有监督训练的ResNet101在ImageNet验证集都能达到76.2%，但是在ImageNetV2数据集上，CLIP要超过ResNet101。在另外的4个分布漂移的数据集上，ResNet101性能下降得比较厉害，但是CLIP能依然保持较大的准确度，比如在ImageNet-A数据集上，ResNet101性能只有2.7%，而CLIP能达到77.1%。<br><img src="/A.assets/v2-7798ab2d513a0ab79117adcf74d8ec05_720w.webp" alt="img"><br>CLIP能实现这么好的zero-shot性能，大家很可能质疑CLIP的训练数据集可能包含一些测试数据集中的样例，即所谓的数据泄漏。关于这点，论文也采用一个重复检测器对评测的数据集重合做了检查，发现重合率的中位数为2.2%，而平均值在3.2%，去重前后大部分数据集的性能没有太大的变化，如下所示：<br><img src="/A.assets/v2-dcbbf5bc5e3f0e3ff60155547fd134b8_720w.webp" alt="img"><br>论文的最后也对CLIP的局限性做了讨论，这里简单总结其中比较重要的几点：<br>●CLIP的zero-shot性能虽然和有监督的ResNet50相当，但是还不是SOTA，作者估计要达到SOTA的效果，CLIP还需要增加1000x的计算量，这是难以想象的；<br>●CLIP的zero-shot在某些数据集上表现较差，如细粒度分类，抽象任务等；<br>●CLIP在自然分布漂移上表现鲁棒，但是依然存在域外泛化问题，即如果测试数据集的分布和训练集相差较大，CLIP会表现较差；<br>●CLIP并没有解决深度学习的数据效率低下难题，训练CLIP需要大量的数据；<br>为什么是CLIP（必要性）<br>前面介绍了CLIP的原理和应用，这里我们再回过头来看另外一个问题：为什么是CLIP，即CLIP这篇工作的motivation。 在计算机视觉领域，最常采用的迁移学习方式就是先在一个较大规模的数据集如ImageNet上预训练，然后在具体的下游任务上再进行微调。这里的预训练是基于有监督训练的，需要大量的数据标注，因此成本较高。近年来，出现了一些基于自监督的方法，这包括基于对比学习的方法如MoCo和SimCLR，和基于图像掩码的方法如MAE和BeiT，自监督方法的好处是不再需要标注。但是无论是有监督还是自监督方法，它们在迁移到下游任务时，还是需要进行有监督微调，而无法实现zero-shot。对于有监督模型，由于它们在预训练数据集上采用固定类别数的分类器，所以在新的数据集上需要定义新的分类器来重新训练。对于自监督模型，代理任务往往是辅助来进行表征学习，在迁移到其它数据集时也需要加上新的分类器来进行有监督训练。但是NLP领域，基于自回归或者语言掩码的预训练方法已经取得相对成熟，而且预训练模型很容易直接zero-shot迁移到下游任务，比如OpenAI的GPT-3。这种差异一方面是由于文本和图像属于两个完全不同的模态，另外一个原因就是NLP模型可以采用从互联网上收集的大量文本。那么问题来了：能不能基于互联网上的大量文本来预训练视觉模型？<br>那么其实之前已经有一些工作研究用文本来作为监督信号来训练视觉模型，比如16年的工作<a href="https://link.zhihu.com/?target=https://arxiv.org/abs/1511.02251">Learning Visual Features from Large Weakly Supervised Data</a>将这转化成一个多标签分类任务来预测图像对应的文本的bag of words；17年的工作<a href="https://link.zhihu.com/?target=https://arxiv.org/abs/1612.09161">Learning Visual N-Grams from Web Data</a>进一步扩展了这个方法来预测n-grams。最近的一些工作采用新的模型架构和预训练方法来从文本学习视觉特征，比如<a href="https://link.zhihu.com/?target=https://arxiv.org/abs/2006.06666">VirTex</a>基于transformer的语言模型，<a href="https://link.zhihu.com/?target=https://arxiv.org/abs/2008.01392">ICMLM</a>基于语言掩码的方法，<a href="https://link.zhihu.com/?target=https://arxiv.org/abs/2010.00747">ConVIRT</a>基于对比学习的方法。整体来看，这方面的工作不是太多，这主要是因为这些方法难以实现较高的性能，比如17年的那篇工作只在ImageNet上实现了11.5%的zero-shot性能，这远远低于ImageNet上的SOTA。另外，还有另外的是一个方向，就是基于文本弱监督来提升性能，比如谷歌的<a href="https://link.zhihu.com/?target=https://arxiv.org/abs/1912.11370">BiT</a>和<a href="https://link.zhihu.com/?target=https://arxiv.org/abs/2010.11929">ViT</a>基于JFT-300M数据集来预训练模型在ImageNet上取得SOTA，JFT-300M数据集是谷歌从互联网上收集的，通过一些自动化的手段来将web text来转化成18291个类别，但是存在一定的噪音。虽然谷歌基于JFT-300M数据集取得了较好的结果，但是这些模型依然采用固定类别的softmax分类器进行预训练，这大大限制了它的迁移能力和扩展性。<br>作者认为谷歌的弱监督方法和之前的方法的一个重要的区别在于规模，或者说算力和数据的规模不同。JFT-300M数据量达到了上亿级别，而且谷歌用了强大的算力来进行预训练。而VirTex，ICMLM和ConVIRT只在10万级别的数据上训练了几天。为了弥补数据上的差异，OpenAI从网上收集了4亿的数据来实验。但是新的问题来了：采用什么样的方法来训练。OpenAI首先尝试了VirTex模型，即联合训练一个CNN和文本transformer来预测图像的文本（image caption），但是发现这种方法的训练效率（用ImageNet数据集上的zero-shot性能来评估）还不如直接预测bag of words，如下图所示，两者的训练效率能相差3倍。如果进一步采用<a href="https://link.zhihu.com/?target=https://arxiv.org/abs/2010.00747">ConVIRT</a>，即基于对比学习的方法，训练效率可以进一步提升4倍。之所出现这个差异，这不难理解，训练数据所包含的文本-图像对是从互联网收集来的，它们存在一定的噪音，就是说文本和图像可能并不完全匹配，这个时候适当的降低训练目标，反而能取得更好的收敛。而从任务难度来看：Transformer Language Model &gt; Bag of Words Prediction &gt; Bag of Words Contrastive (CLIP)。由于训练数据量和模型计算量较大，训练效率成为一个至关重要的因素。这就是作者最终选择对比学习的方法来训练的原因。<br><img src="/A.assets/v2-0a2056e539c727c3be2ae1c93829d118_720w.webp" alt="img"><br>从本质上来讲，CLIP其实并没有太大的创新，它只是将<a href="https://link.zhihu.com/?target=https://arxiv.org/abs/2010.00747">ConVIRT</a>方法进行简化，并采用更大规模的文本-图像对数据集来训练。<br>在论文的最后，作者也谈到了由于训练效率的制约，他们采用了对比学习的方法，但是他们依然想做的是直接用图像生成文本，这个如果能成功，那么就和DALL-E这个工作形成闭环了：文本 -&gt; 图像 -&gt; 文本。而且基于生成式训练出来的模型，同样可以实现zero-shot分类，我们可以通过预测句子中的单词（标签）来实现：A photo of [?]。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/10/05/Clip%E6%A8%A1%E5%9E%8B/" rel="prev" title="">
+      <i class="fa fa-chevron-left"></i> 
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/10/05/%E9%A1%B9%E7%9B%AE%E8%83%8C%E6%99%AF/" rel="next" title="">
+       <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#A"><span class="nav-number">1.</span> <span class="nav-text">A</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nekkoya</p>
+  <div class="site-description" itemprop="description">此博客正式搭建于2022年10月2日，欢迎光临~</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nekkoya</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
